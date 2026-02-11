@@ -46,6 +46,14 @@ const API = {
     return res.json();
   },
 
+  getMechanicRequests: async (mechanicId) => {
+  const res = await fetch(
+    `${BASE_URL}/service-requests/mechanic/${mechanicId}`
+  );
+  return res.json();
+},
+
+
 };
 
 export default API;

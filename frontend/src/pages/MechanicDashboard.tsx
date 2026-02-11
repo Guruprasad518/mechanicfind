@@ -13,10 +13,11 @@ const MechanicDashboard: React.FC = () => {
   const { toast } = useToast();
 
   const [requests, setRequests] = useState<any[]>([]);
-  const [mechanicData, setMechanicData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ CHECK LOGIN + LOAD DATA
+  /* ==============================
+     CHECK LOGIN + LOAD REQUESTS
+  ============================== */
   useEffect(() => {
 
     if (!user) {
@@ -29,25 +30,20 @@ const MechanicDashboard: React.FC = () => {
       return;
     }
 
-    loadData();
+    loadRequests();
 
   }, [user]);
 
-  // ✅ LOAD BOTH PROFILE + REQUESTS
-  const loadData = async () => {
+  /* ==============================
+     LOAD REQUESTS
+  ============================== */
+  const loadRequests = async () => {
     try {
 
-      // mechanic profile
-      const mechRes = await fetch(
-        `http://localhost:5000/api/mechanics/${user?._id}`
-      );
-      const mechData = await mechRes.json();
-      setMechanicData(mechData);
-
-      // service requests
       const reqRes = await fetch(
         `http://localhost:5000/api/service-requests/mechanic/${user?._id}`
       );
+
       const reqData = await reqRes.json();
       setRequests(reqData);
 
@@ -58,7 +54,9 @@ const MechanicDashboard: React.FC = () => {
     }
   };
 
-  // ✅ UPDATE STATUS
+  /* ==============================
+     UPDATE STATUS
+  ============================== */
   const handleStatusChange = async (requestId: string, status: string) => {
     try {
       await fetch(
@@ -75,7 +73,7 @@ const MechanicDashboard: React.FC = () => {
         description: "Request updated successfully"
       });
 
-      loadData();
+      loadRequests();
 
     } catch {
       toast({
@@ -86,10 +84,8 @@ const MechanicDashboard: React.FC = () => {
     }
   };
 
-  // ✅ WAIT UNTIL USER EXISTS
   if (!user) return null;
 
-  // ✅ LOADING SCREEN
   if (loading) {
     return (
       <Layout>
@@ -120,10 +116,6 @@ const MechanicDashboard: React.FC = () => {
             <p><b>Name:</b> {user.name}</p>
             <p><b>Email:</b> {user.email}</p>
             <p><b>Mobile:</b> {user.mobile}</p>
-            <p>
-              <b>Workshop:</b>{" "}
-              {mechanicData?.location?.address || "Not set"}
-            </p>
           </CardContent>
         </Card>
 
@@ -145,7 +137,7 @@ const MechanicDashboard: React.FC = () => {
                   <p>{req.description}</p>
 
                   <p className="text-sm text-muted-foreground">
-                    User: {req.userName}
+                    User: {req.userId}
                   </p>
 
                   {req.status === 'pending' && (

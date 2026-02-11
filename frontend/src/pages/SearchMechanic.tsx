@@ -17,6 +17,27 @@ const problemTypes = [
   "Other"
 ];
 
+const getDistanceKm = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return (R * c).toFixed(2);
+};
+
 const SearchMechanic: React.FC = () => {
 
   const { user } = useAuth();
@@ -136,7 +157,10 @@ const SearchMechanic: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: user?._id,
-            mechanicId: mechanic._id,
+
+            // ✅ FIXED (supports both structures safely)
+            mechanicId: mechanic.userId || mechanic._id,
+
             problemType,
             description,
             location: {
@@ -176,7 +200,6 @@ const SearchMechanic: React.FC = () => {
 
           <CardContent className="space-y-4">
 
-            {/* Problem */}
             <select
               className="w-full border rounded-lg p-2"
               value={problemType}
@@ -188,21 +211,18 @@ const SearchMechanic: React.FC = () => {
               ))}
             </select>
 
-            {/* Description */}
             <Textarea
               placeholder="Describe problem"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
 
-            {/* Address */}
             <Input
               placeholder="Address / Landmark"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
             />
 
-            {/* Location */}
             <Button type="button" onClick={handleGetLocation}>
               <MapPin className="w-4 h-4 mr-2" />
               Get Location
@@ -229,27 +249,64 @@ const SearchMechanic: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* RESULTS */}
         {mechanics.length > 0 && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mechanics.map((m) => (
-              <Card key={m._id}>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold">{m.name}</h3>
-                  <p>{m.mobile}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {m.location?.address}
-                  </p>
 
-                  <Button
-                    className="w-full mt-3"
-                    onClick={() => handleRequestService(m)}
-                  >
-                    Request Service
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {mechanics.map((m) => {
+
+              const distance = location
+                ? getDistanceKm(
+                    location.lat,
+                    location.lng,
+                    m.latitude,
+                    m.longitude
+                  )
+                : null;
+
+              const mechanicMapLink =
+                m.latitude && m.longitude
+                  ? `https://www.google.com/maps?q=${m.latitude},${m.longitude}`
+                  : null;
+
+              return (
+                <Card key={m._id}>
+                  <CardContent className="p-4">
+
+                    <h3 className="font-semibold">{m.name}</h3>
+                    <p>{m.mobile}</p>
+
+                    <p className="text-sm text-muted-foreground">
+                      {m.location?.address}
+                    </p>
+
+                    {distance && (
+                      <p className="text-sm mt-1">
+                        📍 {distance} KM away
+                      </p>
+                    )}
+
+                    {mechanicMapLink && (
+                      <a
+                        href={mechanicMapLink}
+                        target="_blank"
+                        className="text-blue-500 underline text-sm"
+                      >
+                        View Mechanic Location
+                      </a>
+                    )}
+
+                    <Button
+                      className="w-full mt-3"
+                      onClick={() => handleRequestService(m)}
+                    >
+                      Request Service
+                    </Button>
+
+                  </CardContent>
+                </Card>
+              );
+            })}
+
           </div>
         )}
 

@@ -22,7 +22,6 @@ const Register: React.FC = () => {
   const { toast } = useToast();
   const { register, user } = useAuth();
 
-  // ✅ FIXED USER TYPE HANDLING
   const [userType, setUserType] =
     useState<'user' | 'mechanic'>('user');
 
@@ -31,7 +30,6 @@ const Register: React.FC = () => {
     setUserType(type === 'mechanic' ? 'mechanic' : 'user');
   }, [searchParams]);
 
-  // ✅ FORM DATA
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -48,7 +46,6 @@ const Register: React.FC = () => {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ REDIRECT AFTER REGISTER
   useEffect(() => {
     if (user) {
       navigate(
@@ -59,7 +56,6 @@ const Register: React.FC = () => {
     }
   }, [user, navigate]);
 
-  // ✅ GET GPS LOCATION
   const handleGetLocation = () => {
 
     if (!navigator.geolocation) {
@@ -98,7 +94,6 @@ const Register: React.FC = () => {
     );
   };
 
-  // ✅ SPECIALTY SELECT
   const handleSpecialtyChange = (id: string) => {
     setFormData(prev => ({
       ...prev,
@@ -108,12 +103,10 @@ const Register: React.FC = () => {
     }));
   };
 
-  // Google map link
   const mapLink =
     location &&
     `https://www.google.com/maps?q=${location.lat},${location.lng}`;
 
-  // ✅ REGISTER SUBMIT
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -162,12 +155,20 @@ const Register: React.FC = () => {
       email: formData.email,
       password: formData.password,
       type: userType,
+
       ...(userType === 'mechanic' && {
+        // ✅ ADDED FOR BACKEND STORAGE
+        address: formData.address,
+        latitude: location?.lat,
+        longitude: location?.lng,
+
+        // ✅ KEEPING YOUR OLD STRUCTURE SAFE
         location: {
           lat: location?.lat,
           lng: location?.lng,
           address: formData.address
         },
+
         specialties: formData.specialties
       })
     });
@@ -227,7 +228,6 @@ const Register: React.FC = () => {
               }
             />
 
-            {/* MECHANIC FIELDS */}
             {userType === 'mechanic' && (
               <>
                 <Input
