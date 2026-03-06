@@ -42,7 +42,7 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://mechanicfind.onrender.com/api";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children
