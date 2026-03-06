@@ -56,7 +56,7 @@ const UserDashboard: React.FC = () => {
   const loadRequests = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/service-requests/user/${user?._id}`
+        `https://mechanicfind.onrender.com/api/service-requests/user/${user?._id}`
       );
 
       const data = await res.json();

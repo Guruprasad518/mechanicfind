@@ -39,7 +39,6 @@ const getDistanceKm = (
 };
 
 const SearchMechanic: React.FC = () => {
-
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,10 +46,7 @@ const SearchMechanic: React.FC = () => {
   const [problemType, setProblemType] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
-
-  const [location, setLocation] =
-    useState<{ lat: number; lng: number } | null>(null);
-
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mechanics, setMechanics] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -58,258 +54,150 @@ const SearchMechanic: React.FC = () => {
     if (!user) navigate("/login");
   }, [user]);
 
-  /* ---------------- GET LOCATION ---------------- */
   const handleGetLocation = () => {
-
     if (!navigator.geolocation) {
-      toast({
-        title: "Error",
-        description: "Geolocation not supported",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Geolocation not supported", variant: "destructive" });
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const loc = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-
-        setLocation(loc);
-
-        toast({
-          title: "Location captured",
-          description: "GPS location detected"
-        });
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        toast({ title: "Location captured", description: "GPS location detected" });
       },
       () => {
-        toast({
-          title: "Location error",
-          description: "Please allow location permission",
-          variant: "destructive"
-        });
+        toast({ title: "Location error", description: "Please allow location permission", variant: "destructive" });
       }
     );
   };
 
-  const mapLink =
-    location &&
-    `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+  const mapLink = location && `https://www.google.com/maps?q=${location.lat},${location.lng}`;
 
-  /* ---------------- SEARCH MECHANICS ---------------- */
   const handleSearch = async () => {
-
     if (!location) {
-      toast({
-        title: "Location required",
-        description: "Click Get Location first",
-        variant: "destructive"
-      });
+      toast({ title: "Location required", description: "Click Get Location first", variant: "destructive" });
       return;
     }
-
     setLoading(true);
-
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/mechanics/nearby",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lat: location.lat,
-            lng: location.lng,
-            radius: 10
-          })
-        }
-      );
-
+      const res = await fetch("https://mechanicfind.onrender.com/api/mechanics/nearby", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: location.lat, lng: location.lng, radius: 50 })
+      });
       const data = await res.json();
       setMechanics(data);
-
-      toast({
-        title: "Search Complete",
-        description: `${data.length} mechanics found`
-      });
-
+      toast({ title: "Search Complete", description: `${data.length} mechanics found` });
     } catch (err) {
       console.log(err);
-      toast({
-        title: "Error",
-        description: "Search failed",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Search failed", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
-  /* ---------------- REQUEST SERVICE ---------------- */
+  /* ---------------- REQUEST SERVICE (UPDATED) ---------------- */
   const handleRequestService = async (mechanic: any) => {
+    if (!location) return;
+
+    // Calculate distance for the database record
+    const distance = getDistanceKm(
+        location.lat,
+        location.lng,
+        mechanic.latitude || mechanic.location?.lat,
+        mechanic.longitude || mechanic.location?.lng
+    );
 
     try {
-      await fetch(
-        "http://localhost:5000/api/service-requests",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: user?._id,
-
-            // ✅ FIXED (supports both structures safely)
-            mechanicId: mechanic.userId || mechanic._id,
-
-            problemType,
-            description,
-            location: {
-              ...location,
-              address
-            }
-          })
-        }
-      );
-
-      toast({
-        title: "Request Sent",
-        description: "Mechanic will contact you soon"
+      await fetch("https://mechanicfind.onrender.com/api/service-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user?._id,
+          userName: user?.name,        // Added: sending user name
+          userMobile: user?.mobile,    // Added: sending user mobile
+          mechanicId: mechanic.userId || mechanic._id,
+          mechanicName: mechanic.name,
+          problemType,
+          description,
+          location: {
+            ...location,
+            address
+          },
+          locationLink: mapLink,       // Added: sending the maps link
+          distanceKm: distance         // Added: sending the distance
+        })
       });
 
+      toast({ title: "Request Sent", description: "Mechanic will contact you soon" });
       navigate("/user/dashboard");
-
     } catch {
-      toast({
-        title: "Error",
-        description: "Request failed",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Request failed", variant: "destructive" });
     }
   };
-
-  /* ---------------- UI ---------------- */
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Find a Mechanic</CardTitle>
-          </CardHeader>
-
+          <CardHeader><CardTitle>Find a Mechanic</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-
             <select
               className="w-full border rounded-lg p-2"
               value={problemType}
               onChange={(e) => setProblemType(e.target.value)}
             >
               <option value="">Select Problem</option>
-              {problemTypes.map(p => (
-                <option key={p}>{p}</option>
-              ))}
+              {problemTypes.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
-
             <Textarea
               placeholder="Describe problem"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-
             <Input
               placeholder="Address / Landmark"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
             />
-
             <Button type="button" onClick={handleGetLocation}>
-              <MapPin className="w-4 h-4 mr-2" />
-              Get Location
+              <MapPin className="w-4 h-4 mr-2" /> Get Location
             </Button>
-
             {mapLink && (
-              <a
-                href={mapLink}
-                target="_blank"
-                className="text-blue-500 underline text-sm"
-              >
-                View Location on Google Maps
+              <a href={mapLink} target="_blank" rel="noreferrer" className="text-blue-500 underline text-sm block">
+                View My Location on Google Maps
               </a>
             )}
-
-            <Button
-              className="w-full"
-              onClick={handleSearch}
-              disabled={loading}
-            >
+            <Button className="w-full" onClick={handleSearch} disabled={loading}>
               {loading ? "Searching..." : "Search Mechanics"}
             </Button>
-
           </CardContent>
         </Card>
 
         {mechanics.length > 0 && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-
             {mechanics.map((m) => {
-
-              const distance = location
-                ? getDistanceKm(
-                    location.lat,
-                    location.lng,
-                    m.latitude,
-                    m.longitude
-                  )
-                : null;
-
-              const mechanicMapLink =
-                m.latitude && m.longitude
-                  ? `https://www.google.com/maps?q=${m.latitude},${m.longitude}`
-                  : null;
+              const distance = location ? getDistanceKm(
+                location.lat, location.lng, 
+                m.latitude || m.location?.lat, m.longitude || m.location?.lng
+              ) : null;
 
               return (
                 <Card key={m._id}>
                   <CardContent className="p-4">
-
-                    <h3 className="font-semibold">{m.name}</h3>
-                    <p>{m.mobile}</p>
-
-                    <p className="text-sm text-muted-foreground">
-                      {m.location?.address}
-                    </p>
-
-                    {distance && (
-                      <p className="text-sm mt-1">
-                        📍 {distance} KM away
-                      </p>
-                    )}
-
-                    {mechanicMapLink && (
-                      <a
-                        href={mechanicMapLink}
-                        target="_blank"
-                        className="text-blue-500 underline text-sm"
-                      >
-                        View Mechanic Location
-                      </a>
-                    )}
-
-                    <Button
-                      className="w-full mt-3"
-                      onClick={() => handleRequestService(m)}
-                    >
+                    <h3 className="font-semibold text-lg">{m.name}</h3>
+                    <p className="text-sm font-medium text-gray-700">{m.mobile}</p>
+                    <p className="text-sm text-muted-foreground">{m.location?.address || "Nearby"}</p>
+                    {distance && <p className="text-sm mt-1 font-bold text-blue-600">📍 {distance} KM away</p>}
+                    <Button className="w-full mt-3" onClick={() => handleRequestService(m)}>
                       Request Service
                     </Button>
-
                   </CardContent>
                 </Card>
               );
             })}
-
           </div>
         )}
-
       </div>
     </Layout>
   );
