@@ -5,40 +5,24 @@ const connectDB = require('./config/db');
 
 const app = express();
 
-// 1. Connect Database
-connectDB();
+// 1. Database Connection with Error Logging
+connectDB().catch(err => {
+    console.error("DATABASE CONNECTION ERROR:", err.message);
+});
 
-// 2. Optimized CORS Fix
-// Using an array handles both the domain and the domain with a trailing slash
-const allowedOrigins = [
-  "https://mechanicfind.vercel.app",
-  "https://mechanicfind.vercel.app/"
-];
+// 2. Simplest CORS (For Debugging)
+// This allows EVERYTHING. If this doesn't work, the problem is Render/Network.
+app.use(cors()); 
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
-
-// 3. Handle preflight requests (Crucial for Chrome/Edge)
-app.options('*', cors());
-
-// 4. Middleware
+// 3. Middleware
 app.use(express.json());
 
-// 5. Health Check Route (Check this in your browser to see if Render is awake)
+// 4. Critical: Preflight handler for all routes
+app.options('*', cors());
+
+// 5. Success Check (Visit this in your browser)
 app.get('/', (req, res) => {
-  res.status(200).send("Mechanic Find API is Live and Running.");
+    res.json({ message: "API is working!", status: "Connected" });
 });
 
 // 6. Routes
@@ -46,9 +30,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/mechanics', require('./routes/mechanicRoutes'));
 app.use('/api/service-requests', require('./routes/requestRoutes'));
 
-// 7. Port Configuration
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
