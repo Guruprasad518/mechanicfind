@@ -5,22 +5,25 @@ const connectDB = require('./config/db');
 
 const app = express();
 
-// 1. Database Connection with Error Logging
-connectDB().catch(err => {
-    console.error("DATABASE CONNECTION ERROR:", err.message);
-});
+// 1. Connect Database
+connectDB();
 
-// 2. Simplest CORS (For Debugging)
-// This allows EVERYTHING. If this doesn't work, the problem is Render/Network.
-app.use(cors()); 
+// 2. The Absolute CORS Fix
+// We use a simple configuration first to ensure it works.
+app.use(cors({
+  origin: "https://mechanicfind.vercel.app", // NO trailing slash
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
 
-// 3. Middleware
+// 3. Handle Preflight (This is what's failing for you)
+app.options('*', cors()); 
+
+// 4. Middleware
 app.use(express.json());
 
-// 4. Critical: Preflight handler for all routes
-app.options('*', cors());
-
-// 5. Success Check (Visit this in your browser)
+// 5. Success Check
 app.get('/', (req, res) => {
     res.json({ message: "API is working!", status: "Connected" });
 });
