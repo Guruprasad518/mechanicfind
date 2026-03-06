@@ -56,7 +56,7 @@ const MechanicDashboard: React.FC = () => {
   const handleStatusChange = async (requestId: string, status: string) => {
     try {
       await fetch(
-        `http://localhost:5000/api/service-requests/${requestId}`,
+        `https://mechanicfind.onrender.com/api/service-requests/${requestId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
